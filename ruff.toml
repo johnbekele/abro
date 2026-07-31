@@ -1,0 +1,14 @@
+# Repo-wide Python defaults. `abro-api/pyproject.toml` extends this rather than
+# replacing it, so the gate scripts and the backend are held to the same bar.
+target-version = "py312"
+line-length = 100
+
+[lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "C4", "ARG", "PTH", "RUF"]
+# Ge'ez script in strings and docstrings is ordinary content in this codebase, so the
+# ambiguous-unicode rules are pure noise here.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[lint.per-file-ignores]
+# Fixture trees deliberately contain the patterns the gates are looking for.
+"scripts/gates/test_gates.py" = ["ARG001"]
