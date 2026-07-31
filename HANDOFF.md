@@ -22,40 +22,71 @@ CI gates, and a backlog of very detailed issues. No application code.
 
 ## Status
 
+### Start here in a new session
+
+Open `~/personal/abro` as the Cursor workspace folder first, or every write needs manual approval.
+Then give the agent this:
+
+> Read `HANDOFF.md`. Continue from the "Remaining" list, starting at step 1. Do not write
+> application code — this repo intentionally contains none. The deliverable is governance, CI
+> gates, and the issue backlog.
+
 ### Done
 
-- Repo created, public, cloned to `~/personal/abro`. Git identity set repo-locally.
-- `README.md`, `LICENSE`, `.gitignore`, `.editorconfig`, `.nvmrc`, root `package.json`.
-- `docs/PRODUCT_CONTEXT.md` — the product, business rules, legal position, out-of-scope list.
-- `docs/ARCHITECTURE.md` — intended system shape, layering, data model outline.
-- `docs/DOMAIN_GLOSSARY.md` — vocabulary. Use these words in code.
-- `docs/adr/0001-monorepo-and-stack.md`.
+- Repo created, **public**, cloned to `~/personal/abro`, default branch `main`, git identity set
+  repo-locally. First commit pushed.
+- Root files: `README.md`, `LICENSE`, `.gitignore`, `.editorconfig`, `.nvmrc`, `package.json`.
+- `AGENTS.md` — the invariants and escalation rules. **The most important file in the repo.**
+- `CONTRIBUTING.md`, `AUTOPILOT.md`.
+- `docs/PRODUCT_CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/DOMAIN_GLOSSARY.md`.
+- `docs/adr/0001` through `docs/adr/0010` — all ten written.
 
 ### Remaining, in order
 
-1. **ADRs 0002–0010** (see list below). Short, ~40 lines each.
-2. **`AGENTS.md`** — invariants and escalation rules for AI agents. High value; write it well.
-3. **`CONTRIBUTING.md`**, **`docs/CI_GATES.md`**, **`docs/RUNBOOK.md`**.
-4. **`AUTOPILOT.md`** — adapted from the Pokojowo playbook (see "Prior art" below).
-5. **`.github/`** — workflows, issue templates, PR template, CODEOWNERS, renovate config.
-6. **`scripts/gates/`** — the six custom gate scripts.
-7. **Labels and milestones** via `gh`.
-8. **The backlog: ~120 issues.** This is the main deliverable.
-9. **GitHub Project board** — needs `gh auth refresh -s project` first; the token lacks the scope.
+**1. `docs/CI_GATES.md`** — the per-gate reference. Lead with the six abro-specific gates,
+explaining for each what it bans and *why* (the "why" is what stops someone deleting it later).
+Then the standard per-project tables. Content is listed under "CI gates to build" below.
 
-### ADRs still to write
+**2. `docs/RUNBOOK.md`** — how to run it once it exists. Keep short and forward-looking: `make`
+targets, docker-compose services, how to build the Ethiopia routing tiles, how to reset the
+database. Nothing exists yet, so this describes the intended commands that the M0 issues create.
 
-| File | Subject |
-|---|---|
-| `0002-deposit-not-escrow.md` | Deposit online, balance in cash. NBE licensing makes escrow illegal for us. |
-| `0003-cancellation-and-refund-tiers.md` | The four-tier matrix, 30-min grace, 15-min no-show clock. |
-| `0004-postgis-two-stage-matching.md` | Gross match in PostGIS then Valhalla; the `_ST_Expand` index pairing; direction via `ST_LineLocatePoint`; no materialized view. |
-| `0005-self-hosted-valhalla.md` | OSM + Valhalla + Photon + PMTiles. Google forbidden by licence. |
-| `0006-price-cap-as-legal-spine.md` | 80–120% band as the Code 2 legal defence. |
-| `0007-ethiopian-time-in-typescript.md` | All calendar/clock logic in `@abro/time`; backend pure UTC. |
-| `0008-telegram-first-otp.md` | Telegram Gateway primary, local SMS fallback, mock in dev. |
-| `0009-curated-gazetteer.md` | Curated meeting points instead of geocoding. |
-| `0010-offline-first-clients.md` | Shutdowns and dark highways make offline a requirement. |
+**3. Root `Makefile` and `docker-compose.yml`.** These were written once and deliberately removed
+because they referenced directories that do not exist. Recreate them **as part of the M0
+scaffolding issues**, not now — but `README.md` and `CONTRIBUTING.md` already reference
+`make setup`, `make up` and `make verify`, so the M0 issues must deliver those exact targets.
+
+**4. `.github/`**
+- `workflows/ci.yml` — path-filtered jobs per project. **Use `paths:` filters at workflow level**
+  so nothing fires until the relevant directory exists.
+- `workflows/security.yml`, `codeql.yml`, `scorecard.yml`, `pr-hygiene.yml`, `nightly.yml`,
+  `infra.yml`, `deploy-staging.yml`, `deploy-prod.yml`.
+- `ISSUE_TEMPLATE/` — `feature.yml`, `bug.yml`, `spike.yml`, plus `config.yml`.
+- `PULL_REQUEST_TEMPLATE.md` — linked issue, summary, verification, Amharic screenshot prompt.
+- `CODEOWNERS` — `* @johnbekele` for now.
+- `renovate.json` or `dependabot.yml`.
+- `dangerfile.ts`.
+
+**5. `scripts/gates/`** — six Python scripts, one per custom gate, listed below. Each must exit 0
+cleanly when its target directory does not yet exist, so they pass on the empty repo.
+
+**6. Labels and milestones** via `gh`. Taxonomy below. Do it in one scripted run.
+
+**7. The backlog: ~120 issues.** The main deliverable. Approach that works:
+- Write bodies to `.backlog/NNN-slug.md` (add `.backlog/` to `.gitignore`).
+- Create with `gh issue create --title ... --body-file ... --label ... --milestone ...`.
+- Work milestone by milestone so a partial run still leaves a coherent backlog.
+- Do **not** try to hold all 120 in context at once. Batch by epic, roughly 8–10 per batch.
+- Every issue uses the template below, no exceptions.
+
+**8. GitHub Project board.** Run `gh auth refresh -s project` first — the current token lacks the
+scope. Then create the board and add every issue, with views grouped by discipline and milestone.
+
+**9. Branch protection** on `main` once the workflows exist and have run at least once (required
+checks cannot be named until GitHub has seen them). Require the gate set, linear history, and
+CODEOWNERS review.
+
+**10. Delete `HANDOFF.md`** and remove its reference from `README.md`.
 
 ---
 

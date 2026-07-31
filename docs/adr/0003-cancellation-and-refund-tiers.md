@@ -32,8 +32,8 @@ Seats return to inventory immediately.
 
 - **Manual-approval expiry.** If a driver does not respond before the deadline, the request
   expires and the deposit refunds automatically.
-- **Post-trip complaint window.** One hour after scheduled arrival. Absent a complaint the trip
-  is tacitly confirmed and ratings open.
+- **Post-trip complaint window.** One hour after scheduled arrival. Absent a complaint the trip is
+  tacitly confirmed and ratings open.
 - **No-show clock.** 15 minutes, matching BlaBlaCar's European default.
 
 ## Why
@@ -41,15 +41,15 @@ Seats return to inventory immediately.
 Under the deposit model we hold only the service fee, so we cannot move the contribution between
 parties as compensation. The financial penalty is therefore smaller than BlaBlaCar's and the
 **reputational penalty carries proportionally more weight** — which is why automatic 1/5 ratings
-are part of the policy rather than an optional extra. Without them, a late cancellation costs
+are part of the policy rather than an optional extra. Without them a late cancellation costs
 almost nothing.
 
 ## Consequences
 
 - Every tier boundary is a timestamp comparison against departure, so the booking state machine
-  needs precise timezone-aware transition timestamps. This is one of the places a naive datetime
-  quietly costs real money.
-- Refunds need a provider that supports them programmatically. A Telebirr deposit must be
-  refunded as ledger credit rather than reversed.
+  needs precise timezone-aware transition timestamps. This is one of the places where a naive
+  datetime quietly costs real money.
+- Refunds need a provider that supports them programmatically. A Telebirr deposit must be refunded
+  as ledger credit rather than reversed.
 - Operations need a manual override with an audit trail — BlaBlaCar reserves sole discretion over
   refund legitimacy and so do we.

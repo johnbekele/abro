@@ -64,6 +64,9 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.json
 
+# Issue-body staging area used when seeding the backlog
+.backlog/
+
 # Test and tooling output
 playwright-report/
 test-results/
