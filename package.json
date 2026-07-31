@@ -1,0 +1,36 @@
+{
+  "name": "abro",
+  "private": true,
+  "version": "0.0.0",
+  "description": "abro (አብሮ) — intercity carpooling for Ethiopia",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.11.0",
+    "npm": ">=10.0.0"
+  },
+  "workspaces": [
+    "abro-web",
+    "abro-mobile",
+    "packages/*"
+  ],
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "husky": "^9.1.7",
+    "knip": "^5.42.2",
+    "lint-staged": "^15.4.1",
+    "prettier": "^3.4.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,md,yml,yaml,css}": "prettier --write",
+    "*.py": "python3 -c \"import sys,subprocess; subprocess.run(['ruff','check','--fix',*sys.argv[1:]])\""
+  }
+}
