@@ -1,0 +1,120 @@
+---
+name: CI web
+
+on:
+  pull_request:
+    paths:
+      - abro-web/**
+      - packages/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/ci-web.yml
+  push:
+    branches: [main]
+    paths:
+      - abro-web/**
+      - packages/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/ci-web.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ci-web-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: lint, types and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: prettier
+        run: npm run format:check
+
+      # eslint-plugin-boundaries encodes the layering: Component to Hook to Service to
+      # generated client, and no network call from a component.
+      - name: eslint
+        run: npm run lint --workspace abro-web
+
+      - name: tsc
+        run: npm run typecheck --workspace abro-web
+
+      - name: i18n parity
+        run: python3 scripts/gates/i18n_parity.py
+
+      - name: vitest
+        run: npm run test --workspace abro-web -- --coverage
+
+      - name: knip
+        run: npx knip --workspace abro-web
+
+  build:
+    name: build and budgets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build --workspace abro-web
+
+      - name: size-limit
+        run: npx size-limit --workspace abro-web
+
+      - name: lighthouse
+        run: npx --yes @lhci/cli@0.15.1 autorun
+
+  e2e:
+    name: playwright and axe
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      # The Amharic locale runs too. Ge'ez metrics differ from Latin and layouts break
+      # in ways that are invisible when you only ever look at English.
+      - run: npm run test:e2e --workspace abro-web
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: abro-web/playwright-report/
+          retention-days: 7

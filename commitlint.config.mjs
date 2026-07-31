@@ -1,0 +1,31 @@
+export default {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'scope-enum': [
+      2,
+      'always',
+      [
+        'identity',
+        'rides',
+        'search',
+        'booking',
+        'payments',
+        'geo',
+        'chat',
+        'trust',
+        'notifications',
+        'i18n',
+        'admin',
+        'growth',
+        'api',
+        'web',
+        'mobile',
+        'infra',
+        'ci',
+        'docs',
+        'deps',
+      ],
+    ],
+    'body-max-line-length': [2, 'always', 100],
+  },
+};

@@ -1,0 +1,34 @@
+---
+# Dependabot rather than Renovate: it is native, so it needs no GitHub App installed and
+# no external account. Ecosystems are added as their directories appear — Dependabot
+# reports an error for a configured directory that does not exist.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    # Actions are pinned by commit SHA, so Dependabot rewrites the SHA and keeps the
+    # version comment in step. Scorecard checks the pinning; this keeps it current.
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: 'chore(ci)'
+    labels: ['area:devops', 'type:chore']
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      npm-minor-and-patch:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+    commit-message:
+      prefix: 'chore(deps)'
+    labels: ['type:chore']
+    open-pull-requests-limit: 5

@@ -1,0 +1,12 @@
+# Review is required from an owner on every path. One owner for now; split by
+# discipline once there is more than one maintainer.
+*                       @johnbekele
+
+# The files that constrain everything else. A change here is a change to how the whole
+# project is allowed to work, so it should never ride along in a feature PR.
+/AGENTS.md              @johnbekele
+/AUTOPILOT.md           @johnbekele
+/docs/adr/              @johnbekele
+/docs/CI_GATES.md       @johnbekele
+/.github/               @johnbekele
+/scripts/gates/         @johnbekele

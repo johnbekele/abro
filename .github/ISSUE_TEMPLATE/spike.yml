@@ -1,0 +1,59 @@
+---
+name: Spike
+description: A time-boxed investigation that produces a decision, not code
+title: 'spike: <the question>'
+labels: ['type:spike']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A spike exists because a feature issue cannot yet be written. It ends in a
+        written answer — usually an ADR or a feature issue — never in merged code.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: The question
+      description: One question, stated precisely enough that an answer is recognisable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: What is blocked on it
+      description: Which issue or decision cannot proceed until this is answered.
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      description: >-
+        The artefact this produces. An ADR, a feature issue, a benchmark result, a
+        written confirmation from a provider.
+      value: |
+        -
+    validations:
+      required: true
+
+  - type: input
+    id: timebox
+    attributes:
+      label: Time box
+      placeholder: 4 hours
+    validations:
+      required: true
+
+  - type: textarea
+    id: escalation
+    attributes:
+      label: Escalation
+      description: >-
+        Anything requiring an account, a payment, or a commitment to an external party
+        stops here and goes to a human.
+      value: |
+        Stop and apply `needs-human` if:
+        - The answer requires creating an account or spending money.
+        -

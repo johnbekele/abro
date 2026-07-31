@@ -1,0 +1,72 @@
+---
+name: Bug
+description: Something behaves differently from how it is specified
+title: '<area>: <what goes wrong>'
+labels: ['type:bug']
+body:
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: Cite the issue, ADR or section of docs/PRODUCT_CONTEXT.md that specifies it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Exact steps. Include the request and response for an API bug.
+      value: |
+        1.
+        2.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >-
+        Local, staging or production; device and Android version for a mobile bug;
+        locale, since a bug that only appears in Amharic is common here.
+      value: |
+        - Environment:
+        - Locale: am / en
+        - Device:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: invariant
+    attributes:
+      label: Does this touch an invariant?
+      description: >-
+        A bug in any of these is P0 by default. Money and time errors are visible to
+        users as lost value and missed trips.
+      multiple: true
+      options:
+        - Money — a wrong amount, or a fraction of a santim anywhere
+        - Time — a departure time off by six hours, or a timezone error
+        - Amharic search — a query that should match and does not
+        - Corridor matching — a wrong-direction or missing result
+        - PII — an identifier reaching a log or an error report
+        - i18n — an untranslated or missing string
+        - None of the above
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected, how often, and whether money or a trip is at stake.
+    validations:
+      required: true

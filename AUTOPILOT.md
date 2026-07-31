@@ -14,7 +14,7 @@ merge authority, and branch protection makes merging a red build impossible for 
 
 ## Issue lifecycle
 
-```
+```text
 You open an issue and label it `autopilot` — however vague.
   └─ Stage 1 posts a plan, splits it into child issues labelled `ready` + `autopilot`,
      and marks the parent `autopilot-done`.

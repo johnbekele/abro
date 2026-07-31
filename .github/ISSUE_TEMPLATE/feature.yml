@@ -1,0 +1,125 @@
+---
+name: Feature
+description: A unit of work an implementer can pick up and finish without asking questions
+title: '<area>: <what this delivers>'
+labels: ['type:feature']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues here are written to be sufficient on their own. If you cannot fill in the
+        technical design, the issue is not ready — open a spike instead.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this exists. Cite the business rule or research finding behind it.
+      placeholder: |
+        docs/PRODUCT_CONTEXT.md §4 caps the contribution at 120% of the recommendation.
+        Nothing enforces that yet, so a driver can publish above the cap.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: >-
+        Out of scope matters most. Say what a reasonable person would assume is included
+        but is not.
+      value: |
+        **In scope:**
+
+        **Out of scope:**
+    validations:
+      required: true
+
+  - type: textarea
+    id: design
+    attributes:
+      label: Technical design
+      description: >-
+        Exact file paths to create or modify. Function signatures, SQLAlchemy models,
+        Pydantic schemas, endpoint contracts with status codes and error bodies.
+    validations:
+      required: true
+
+  - type: textarea
+    id: data
+    attributes:
+      label: Data model and migration
+      description: >-
+        Table DDL, indexes (GiST for geometry, GIN for trigram), and the Alembic revision
+        expected. Write "none" if this issue touches no schema.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Numbered, individually testable statements.
+      value: |
+        1.
+        2.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test plan
+      description: Named test files and the specific cases each must cover, edge cases included.
+    validations:
+      required: true
+
+  - type: textarea
+    id: gates
+    attributes:
+      label: CI gates
+      description: >-
+        Which gates must be green, and any new gate this issue adds. See
+        docs/CI_GATES.md.
+    validations:
+      required: true
+
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies
+      placeholder: 'Blocked by #12. Blocks #31.'
+
+  - type: textarea
+    id: escalation
+    attributes:
+      label: Escalation
+      description: >-
+        Conditions under which the implementer must stop, apply `needs-human` and comment
+        rather than guess.
+      value: |
+        Stop and apply `needs-human` if:
+        -
+    validations:
+      required: true
+
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: Milestone
+      options:
+        - M0 Foundations
+        - M1 Rides & Search
+        - M2 Money
+        - M3 Trust & Comms
+        - M4 Admin CRM & Launch
+    validations:
+      required: true
+
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      options: ['S', 'M', 'L', 'XL']
+    validations:
+      required: true

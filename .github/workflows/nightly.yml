@@ -1,0 +1,101 @@
+---
+name: Nightly
+
+# Everything too slow or too flaky for a pull request. Each job is guarded on its target
+# existing, so the schedule is quiet until there is something to run it against.
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    name: link check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
+        with:
+          args: --no-progress --max-retries 2 './**/*.md'
+          fail: true
+
+  mutation:
+    name: mutation testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        if: hashFiles('abro-api/**') != ''
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      # Money, pricing and the booking state machine only. Mutation testing the whole
+      # backend nightly costs more runner time than the signal is worth.
+      - name: mutmut
+        if: hashFiles('abro-api/**') != ''
+        working-directory: abro-api
+        run: |
+          uv sync --all-extras --dev
+          uv run mutmut run --paths-to-mutate app/services/pricing.py,app/core/money.py
+          uv run mutmut results
+
+  load:
+    name: load test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: k6
+        if: hashFiles('abro-api/tests/load/**') != ''
+        run: |
+          docker run --rm -i -v "$PWD:/src" grafana/k6:0.55.0 \
+            run /src/abro-api/tests/load/search.js
+
+  maestro:
+    name: maestro
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: hashFiles('abro-mobile/.maestro/**') != ''
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Device profiles match what people actually carry in Ethiopia: low-RAM Transsion
+      # handsets, not flagships. A flow that passes on a Pixel emulator proves little.
+      - name: flows
+        if: hashFiles('abro-mobile/.maestro/**') != ''
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "EXPO_TOKEN is not set; skipping the EAS preview build." >&2
+            exit 0
+          fi
+          npm ci
+          npx eas-cli@latest build --platform android --profile preview --non-interactive

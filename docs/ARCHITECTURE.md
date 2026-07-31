@@ -87,7 +87,7 @@ pattern carried over from Pokojowo where it worked well.
 Enforced by `import-linter` in CI, so a violation fails the build rather than getting caught in
 review — or not caught.
 
-```
+```text
 app/api/          HTTP transport only. No business logic. Thin handlers.
    ↓
 app/services/     Business rules. The matching engine, pricing, the booking state machine.
@@ -109,7 +109,7 @@ without an Ethiopian merchant account.
 
 Both clients follow the same convention, which the ESLint boundaries plugin enforces:
 
-```
+```text
 Component → Hook (React Query) → Service (plain functions, no React) → generated API client
 ```
 

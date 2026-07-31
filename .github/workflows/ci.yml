@@ -1,0 +1,88 @@
+---
+name: CI
+
+# The always-on core: the six abro gates plus repo-wide static checks. Per-project
+# suites live in ci-backend.yml, ci-web.yml and ci-mobile.yml, each filtered to its own
+# directory so nothing fires for a project that does not exist yet.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  abro-gates:
+    name: abro gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+
+      - name: Run the six abro gates
+        run: python scripts/gates/run_all.py
+
+      - name: Prove the gates still fire
+        run: |
+          python -m pip install --quiet pytest==9.1.1
+          python -m pytest scripts/gates/test_gates.py -q
+
+      - name: ruff
+        run: |
+          python -m pip install --quiet ruff==0.16.1
+          ruff check scripts
+          ruff format --check scripts
+
+  workflows:
+    name: workflow and shell lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: actionlint
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          "$(go env GOPATH)/bin/actionlint" -color
+
+      - name: yamllint
+        run: |
+          pipx install yamllint==1.38.0
+          yamllint --strict .
+
+      - name: shellcheck
+        run: git ls-files -z '*.sh' '*.bash' | xargs -0 -r shellcheck
+
+  markdown:
+    name: markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: markdownlint
+        run: npx --yes markdownlint-cli2@0.23.2 "**/*.md" "!**/node_modules/**"

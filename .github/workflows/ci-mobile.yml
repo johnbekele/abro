@@ -1,0 +1,90 @@
+---
+name: CI mobile
+
+# Maestro end-to-end runs and EAS preview builds are nightly, not per-PR: they need a
+# build queue and device profiles, and neither belongs in a pull request's critical path.
+
+on:
+  pull_request:
+    paths:
+      - abro-mobile/**
+      - packages/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/ci-mobile.yml
+  push:
+    branches: [main]
+    paths:
+      - abro-mobile/**
+      - packages/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/ci-mobile.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ci-mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: lint, types and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: prettier
+        run: npm run format:check
+
+      - name: eslint
+        run: npm run lint --workspace abro-mobile
+
+      - name: tsc
+        run: npm run typecheck --workspace abro-mobile
+
+      - name: i18n parity
+        run: python3 scripts/gates/i18n_parity.py
+
+      - name: jest
+        run: npm run test --workspace abro-mobile
+
+  expo:
+    name: expo health
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: expo-doctor
+        run: npx expo-doctor
+        working-directory: abro-mobile
+
+      # Background location needs a development build, so a broken prebuild is not
+      # something to discover at release time.
+      - name: prebuild check
+        run: npx expo prebuild --platform android --no-install --clean
+        working-directory: abro-mobile

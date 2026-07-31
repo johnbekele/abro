@@ -1,0 +1,206 @@
+---
+name: CI backend
+
+on:
+  pull_request:
+    paths:
+      - abro-api/**
+      - .github/workflows/ci-backend.yml
+  push:
+    branches: [main]
+    paths:
+      - abro-api/**
+      - .github/workflows/ci-backend.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: abro-api
+
+env:
+  UV_FROZEN: '1'
+
+jobs:
+  lint:
+    name: lint and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - run: uv sync --all-extras --dev
+
+      - name: ruff
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: mypy
+        run: uv run mypy --strict app
+
+      - name: import-linter
+        run: uv run lint-imports
+
+      - name: xenon
+        run: uv run xenon --max-absolute B --max-modules A --max-average A app
+
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - run: uv sync --all-extras --dev
+
+      # Postgres comes from testcontainers rather than a service container, so the
+      # PostGIS version under test is the one pinned in code.
+      - name: pytest
+        run: uv run pytest --cov=app --cov-report=xml --cov-fail-under=85
+
+      - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
+        with:
+          files: abro-api/coverage.xml
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  migrations:
+    name: migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - run: uv sync --all-extras --dev
+
+      - name: Apply every migration from empty
+        run: uv run alembic upgrade head
+
+      - name: Fail on model drift
+        run: |
+          uv run alembic revision --autogenerate -m drift-check --rev-id drift-check
+          if ! git diff --quiet --exit-code alembic/versions; then
+            echo "Models changed without a migration:"
+            git diff alembic/versions
+            exit 1
+          fi
+
+      - name: squawk
+        run: |
+          git diff -z --name-only --diff-filter=A origin/main...HEAD -- 'alembic/versions/*.py' \
+            | xargs -0 -r npx --yes squawk-cli@2.61.0
+        if: github.event_name == 'pull_request'
+
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - run: uv sync --all-extras --dev
+
+      - name: bandit
+        run: uv run bandit -r app -ll
+
+      - name: pip-audit
+        run: uv run pip-audit --strict
+
+  contract:
+    name: API contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - run: uv sync --all-extras --dev
+
+      - name: Export the spec
+        run: uv run python -m app.cli export-openapi --out openapi.json
+
+      - name: spectral
+        run: npx --yes @stoplight/spectral-cli@6.16.2 lint openapi.json --fail-severity warn
+
+      # Mobile clients update slowly and some users stay on old builds for months, so a
+      # removed or repurposed field is a broken app in the field, not a deprecation.
+      - name: oasdiff breaking changes
+        if: github.event_name == 'pull_request'
+        run: |
+          go install github.com/oasdiff/oasdiff@v1.27.0
+          git show origin/main:abro-api/openapi.json > /tmp/openapi-base.json
+          "$(go env GOPATH)/bin/oasdiff" breaking /tmp/openapi-base.json openapi.json --fail-on ERR
+
+      - name: Generated client drift
+        run: |
+          cd ..
+          npm run generate:api-client
+          git diff --exit-code packages/@abro/api-client

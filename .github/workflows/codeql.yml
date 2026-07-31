@@ -1,0 +1,78 @@
+---
+name: CodeQL
+
+# Each language is analysed only once source for it exists. CodeQL fails a run that
+# finds no code, and a permanently red weekly scan is a scan everyone learns to ignore.
+
+on:
+  pull_request:
+    paths:
+      - abro-api/**
+      - abro-web/**
+      - abro-mobile/**
+      - packages/**
+      - abro-infra/**
+  push:
+    branches: [main]
+    paths:
+      - abro-api/**
+      - abro-web/**
+      - abro-mobile/**
+      - packages/**
+      - abro-infra/**
+  schedule:
+    - cron: '30 3 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: analyze ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            sources: abro-api/**
+          - language: javascript-typescript
+            sources: abro-web/**
+          - language: actions
+            sources: .github/workflows/**
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - id: sources
+        run: |
+          if [ -n "${{ hashFiles(matrix.sources) }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: github/codeql-action/init@a2983b8bed1923f44751c5c43237f479442827b3 # v3
+        if: steps.sources.outputs.present == 'true'
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+
+      - uses: github/codeql-action/autobuild@a2983b8bed1923f44751c5c43237f479442827b3 # v3
+        if: steps.sources.outputs.present == 'true'
+
+      - uses: github/codeql-action/analyze@a2983b8bed1923f44751c5c43237f479442827b3 # v3
+        if: steps.sources.outputs.present == 'true'
+        with:
+          category: /language:${{ matrix.language }}

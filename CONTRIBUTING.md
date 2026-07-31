@@ -27,7 +27,7 @@ over with a guess.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 feat(booking): hold seats for 15 minutes during checkout
 fix(pricing): reject contributions above the 120% cap
 chore(ci): pin actions to commit SHAs
