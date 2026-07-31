@@ -27,66 +27,75 @@ CI gates, and a backlog of very detailed issues. No application code.
 Open `~/personal/abro` as the Cursor workspace folder first, or every write needs manual approval.
 Then give the agent this:
 
-> Read `HANDOFF.md`. Continue from the "Remaining" list, starting at step 1. Do not write
-> application code — this repo intentionally contains none. The deliverable is governance, CI
-> gates, and the issue backlog.
+> Read `HANDOFF.md`. Continue from the "Remaining" list, starting at the first item that is not
+> assigned to M0. Do not write application code — this repo intentionally contains none. What is
+> left is the label taxonomy, the issue backlog, the project board and branch protection.
 
 ### Done
 
 - Repo created, **public**, cloned to `~/personal/abro`, default branch `main`, git identity set
   repo-locally. First commit pushed.
-- Root files: `README.md`, `LICENSE`, `.gitignore`, `.editorconfig`, `.nvmrc`, `package.json`.
+- Root files: `README.md`, `LICENSE`, `.gitignore`, `.editorconfig`, `.nvmrc`, `package.json`,
+  `commitlint.config.mjs`, `.markdownlint.json`, `.yamllint.yml`.
 - `AGENTS.md` — the invariants and escalation rules. **The most important file in the repo.**
 - `CONTRIBUTING.md`, `AUTOPILOT.md`.
-- `docs/PRODUCT_CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/DOMAIN_GLOSSARY.md`.
+- `docs/PRODUCT_CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/DOMAIN_GLOSSARY.md`,
+  `docs/CI_GATES.md`, `docs/RUNBOOK.md`.
 - `docs/adr/0001` through `docs/adr/0010` — all ten written.
+- **`scripts/gates/`** — the six custom gates, plus `run_all.py` and `test_gates.py`. Each exits 0
+  when the tree it inspects is absent, and the fixture tests prove each one still fires. Run them
+  with `python scripts/gates/run_all.py`.
+- **`.github/`** — `ci.yml` (always-on: the six gates, actionlint, yamllint, shellcheck,
+  markdownlint) plus `ci-backend.yml`, `ci-web.yml` and `ci-mobile.yml`, each filtered at workflow
+  level to its own directory. Also `security.yml`, `codeql.yml`, `scorecard.yml`, `pr-hygiene.yml`,
+  `nightly.yml`, `infra.yml`, `deploy-staging.yml`, `deploy-prod.yml`, the three issue templates
+  plus `config.yml`, `PULL_REQUEST_TEMPLATE.md`, `CODEOWNERS`, `dependabot.yml`, `dangerfile.ts`.
+  Every action is pinned by commit SHA. `actionlint`, `yamllint` and `markdownlint` were run
+  locally and are clean.
 
 ### Remaining, in order
 
-**1. `docs/CI_GATES.md`** — the per-gate reference. Lead with the six abro-specific gates,
-explaining for each what it bans and *why* (the "why" is what stops someone deleting it later).
-Then the standard per-project tables. Content is listed under "CI gates to build" below.
-
-**2. `docs/RUNBOOK.md`** — how to run it once it exists. Keep short and forward-looking: `make`
-targets, docker-compose services, how to build the Ethiopia routing tiles, how to reset the
-database. Nothing exists yet, so this describes the intended commands that the M0 issues create.
-
-**3. Root `Makefile` and `docker-compose.yml`.** These were written once and deliberately removed
+**1. Root `Makefile` and `docker-compose.yml`.** These were written once and deliberately removed
 because they referenced directories that do not exist. Recreate them **as part of the M0
-scaffolding issues**, not now — but `README.md` and `CONTRIBUTING.md` already reference
-`make setup`, `make up` and `make verify`, so the M0 issues must deliver those exact targets.
+scaffolding issues**, not now — but `README.md`, `CONTRIBUTING.md` and `docs/RUNBOOK.md` already
+reference `make setup`, `make up`, `make verify` and the rest, so the M0 issues must deliver those
+exact targets. `make verify` must run `python scripts/gates/run_all.py`.
 
-**4. `.github/`**
-- `workflows/ci.yml` — path-filtered jobs per project. **Use `paths:` filters at workflow level**
-  so nothing fires until the relevant directory exists.
-- `workflows/security.yml`, `codeql.yml`, `scorecard.yml`, `pr-hygiene.yml`, `nightly.yml`,
-  `infra.yml`, `deploy-staging.yml`, `deploy-prod.yml`.
-- `ISSUE_TEMPLATE/` — `feature.yml`, `bug.yml`, `spike.yml`, plus `config.yml`.
-- `PULL_REQUEST_TEMPLATE.md` — linked issue, summary, verification, Amharic screenshot prompt.
-- `CODEOWNERS` — `* @johnbekele` for now.
-- `renovate.json` or `dependabot.yml`.
-- `dangerfile.ts`.
+**2. Labels and milestones** via `gh`. Taxonomy below. Do it in one scripted run. The issue
+templates already apply `type:feature`, `type:bug` and `type:spike`, and `dependabot.yml` applies
+`area:devops` and `type:chore`, so those five must exist or they are silently dropped.
 
-**5. `scripts/gates/`** — six Python scripts, one per custom gate, listed below. Each must exit 0
-cleanly when its target directory does not yet exist, so they pass on the empty repo.
+**3. The backlog: ~120 issues.** The main deliverable. Approach that works:
 
-**6. Labels and milestones** via `gh`. Taxonomy below. Do it in one scripted run.
-
-**7. The backlog: ~120 issues.** The main deliverable. Approach that works:
-- Write bodies to `.backlog/NNN-slug.md` (add `.backlog/` to `.gitignore`).
+- Write bodies to `.backlog/NNN-slug.md` (`.backlog/` is already in `.gitignore`).
 - Create with `gh issue create --title ... --body-file ... --label ... --milestone ...`.
 - Work milestone by milestone so a partial run still leaves a coherent backlog.
 - Do **not** try to hold all 120 in context at once. Batch by epic, roughly 8–10 per batch.
 - Every issue uses the template below, no exceptions.
 
-**8. GitHub Project board.** Run `gh auth refresh -s project` first — the current token lacks the
+**4. GitHub Project board.** Run `gh auth refresh -s project` first — the current token lacks the
 scope. Then create the board and add every issue, with views grouped by discipline and milestone.
 
-**9. Branch protection** on `main` once the workflows exist and have run at least once (required
-checks cannot be named until GitHub has seen them). Require the gate set, linear history, and
-CODEOWNERS review.
+**5. Branch protection** on `main` once the workflows have run at least once (required checks
+cannot be named until GitHub has seen them). Require the `abro gates`, `workflow and shell lint`
+and `markdown` checks from `ci.yml`, plus `gitleaks`, linear history, and CODEOWNERS review. The
+per-project CI checks cannot be required while their directories are absent — a path-filtered
+workflow never reports, so a required check that never runs blocks every merge. Add each one as
+its project lands.
 
-**10. Delete `HANDOFF.md`** and remove its reference from `README.md`.
+**6. Delete `HANDOFF.md`** and remove its reference from `README.md`.
+
+### Known gaps, deliberate
+
+- **Dependabot covers `github-actions` and root `npm` only.** A configured directory that does not
+  exist is a Dependabot error, so the `uv` and Docker ecosystems get added by the M0 issues that
+  create `abro-api/` and the Dockerfiles.
+- **Prettier is not yet in CI.** `npm ci` needs a lockfile and there is none until M0 installs
+  dependencies. `package.json` already declares the `format:check` script; wire it into `ci.yml`
+  with the M0 tooling issue.
+- **Deploy workflows have no credentials.** Both skip with a `::notice::` rather than failing.
+  They need `AWS_ROLE_ARN` and `PULUMI_ACCESS_TOKEN` set on the `staging` and `production`
+  environments. Obtaining them is a human task — see the escalation rules in `AGENTS.md`.
 
 ---
 
@@ -135,7 +144,7 @@ a generic marketplace. Cite them in issue bodies so implementers understand *why
 
 **Matching and geo**
 
-- BlaBlaCar's two-stage algorithm, the `_ST_Expand(...) && ` + `ST_DWithin` index pairing worth
+- BlaBlaCar's two-stage algorithm, the `_ST_Expand(...) &&` + `ST_DWithin` index pairing worth
   34×, and their materialized-view refresh taking 2–3 minutes and consuming the database.
 - "Boost" partial-route rides: **45% of displayed results, 30% of all bookings.** Core, not v2.
 - Google's licence forbids persisting route geometry — disqualifying, regardless of price.
@@ -232,29 +241,19 @@ Backend ≈48, web ≈20, mobile ≈22, infra/devops ≈13, QA ≈8, security �
 
 ---
 
-## CI gates to build
+## CI gates
 
-Path-filtered `ci.yml` plus `security.yml`, `codeql.yml`, `scorecard.yml`, `pr-hygiene.yml`,
-`nightly.yml`, `infra.yml`, `deploy-staging.yml`, `deploy-prod.yml`.
+Built. `docs/CI_GATES.md` is the reference and `scripts/gates/` is the implementation of the six
+custom ones. Two things to carry into the backlog:
 
-Standard gates: ruff, mypy --strict, pytest at 85% coverage with Codecov patch gate, Alembic
-drift, squawk, import-linter, xenon, bandit, pip-audit; OpenAPI spectral + oasdiff + client-drift;
-ESLint with boundaries, Prettier, tsc at zero, Vitest 80%, knip, size-limit, Lighthouse,
-Playwright + axe; expo-doctor, Maestro nightly; pulumi preview, checkov, hadolint, actionlint,
-yamllint, shellcheck, Trivy, syft SBOM; CodeQL, Semgrep, gitleaks, OSV, Dependency Review,
-Scorecard, harden-runner; commitlint, semantic PR titles, markdownlint, lychee, Danger.js.
+**Each per-project workflow is a promise the M0 issues must keep.** `ci-backend.yml` invokes
+`uv sync`, `alembic upgrade head`, `lint-imports`, `app.cli export-openapi` and
+`npm run generate:api-client`; `ci-web.yml` and `ci-mobile.yml` invoke workspace `lint`,
+`typecheck`, `test` and `build` scripts. An M0 issue that scaffolds a project must deliver the
+commands its workflow already calls, or the first pull request in that directory goes red.
 
-**Six custom gates unique to abro** — these are the differentiator, so build them properly:
-
-1. **money-float** — bans float arithmetic on money; forces integer santim.
-2. **time-safety** — bans naive `datetime` and bare `datetime.now()`; bans any Ethiopian calendar
-   or 6-hour-clock conversion outside `packages/@abro/time`.
-3. **i18n-parity** — `en` and `am` catalogs must have identical key sets; no hardcoded strings.
-4. **amharic-search** — gazetteer name queries must go through `am_normalize()`; fixture suite of
-   homophone spelling pairs.
-5. **geo-safety** — bans `ST_DWithin` on route geometry without its `_ST_Expand(...) &&`
-   companion; bans corridor matching without the `f_dropoff > f_pickup` direction check.
-6. **pii-logging** — bans logging phone numbers, Fayda IDs, payment references.
+**The custom gates are static checks, not a substitute for design.** They catch the mistake after
+it is written. The issue bodies still have to say what correct looks like.
 
 ---
 
