@@ -96,6 +96,10 @@ its project lands.
 - **Deploy workflows have no credentials.** Both skip with a `::notice::` rather than failing.
   They need `AWS_ROLE_ARN` and `PULUMI_ACCESS_TOKEN` set on the `staging` and `production`
   environments. Obtaining them is a human task — see the escalation rules in `AGENTS.md`.
+- **Dependency review needs the dependency graph enabled.** The `dependency review` job in
+  `security.yml` fails with "not supported on this repository" until it is switched on under
+  Settings → Code security. It only runs on pull requests, so `main` is unaffected meanwhile.
+  Enable it together with Dependabot security updates, which is also currently off.
 
 ---
 

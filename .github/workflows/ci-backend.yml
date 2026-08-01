@@ -28,9 +28,37 @@ env:
   UV_FROZEN: '1'
 
 jobs:
+  # The path filter includes this workflow file, so editing it triggers a run even when
+  # abro-api/ does not exist yet. Every job below is gated on the project being there.
+  present:
+    name: project present
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    outputs:
+      present: ${{ steps.check.outputs.present }}
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - id: check
+        run: |
+          if [ -n "${{ hashFiles('abro-api/**') }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::abro-api/ does not exist yet; backend checks skipped."
+          fi
+
   lint:
     name: lint and types
     runs-on: ubuntu-latest
+    needs: present
+    if: needs.present.outputs.present == 'true'
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
         with:
@@ -62,6 +90,8 @@ jobs:
   test:
     name: tests
     runs-on: ubuntu-latest
+    needs: present
+    if: needs.present.outputs.present == 'true'
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
         with:
@@ -91,6 +121,8 @@ jobs:
   migrations:
     name: migrations
     runs-on: ubuntu-latest
+    needs: present
+    if: needs.present.outputs.present == 'true'
     services:
       postgres:
         image: postgis/postgis:16-3.4
@@ -141,6 +173,8 @@ jobs:
   security:
     name: security
     runs-on: ubuntu-latest
+    needs: present
+    if: needs.present.outputs.present == 'true'
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
         with:
@@ -164,6 +198,8 @@ jobs:
   contract:
     name: API contract
     runs-on: ubuntu-latest
+    needs: present
+    if: needs.present.outputs.present == 'true'
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
         with:

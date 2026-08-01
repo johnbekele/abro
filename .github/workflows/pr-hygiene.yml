@@ -58,6 +58,7 @@ jobs:
             infra
             ci
             docs
+            deps
           requireScope: false
           subjectPattern: ^(?![A-Z]).+[^.]$
           subjectPatternError: |
@@ -66,6 +67,9 @@ jobs:
   commits:
     name: commitlint
     runs-on: ubuntu-latest
+    # Dependabot's messages are machine-generated. Holding a bot to the commit
+    # conventions produces failures nobody can act on.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
         with:
@@ -79,19 +83,20 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      # commitlint.config.mjs resolves `extends` relative to itself, so the shareable
+      # config has to be in the repository's own node_modules, not npx's temp prefix.
       - name: commitlint
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          npx --yes \
-            --package @commitlint/cli@19.6.1 \
-            --package @commitlint/config-conventional@19.6.0 \
-            commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+          npm install --no-save --no-audit --no-fund --ignore-scripts
+          npx commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
 
   danger:
     name: danger
     runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     permissions:
       contents: read
       pull-requests: write
@@ -111,6 +116,7 @@ jobs:
       - name: danger
         env:
           DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # danger 13 calls ts.getDefaultCompilerOptions, which TypeScript 6 removed.
         run: |
-          npx --yes --package danger@13.0.10 --package typescript \
+          npx --yes --package danger@13.0.10 --package typescript@5.9.3 \
             danger ci --dangerfile .github/dangerfile.ts --failOnErrors
