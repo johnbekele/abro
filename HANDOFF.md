@@ -27,9 +27,10 @@ CI gates, and a backlog of very detailed issues. No application code.
 Open `~/personal/abro` as the Cursor workspace folder first, or every write needs manual approval.
 Then give the agent this:
 
-> Read `HANDOFF.md`. Continue from the "Remaining" list, starting at the first item that is not
-> assigned to M0. Do not write application code — this repo intentionally contains none. What is
-> left is the label taxonomy, the issue backlog, the project board and branch protection.
+> Read `HANDOFF.md`. Continue from the "Remaining" list. `M0 Foundations` is fully specified —
+> its 25 issues are open, labelled `ready` + `autopilot` and ordered by dependency. What is left
+> is the `M1`–`M4` backlog and the project board. Do not write application code in this session:
+> the M0 issues deliver it and an agent is meant to pick them up.
 
 ### Done
 
@@ -53,49 +54,75 @@ Then give the agent this:
   Every action is pinned by commit SHA. `actionlint`, `yamllint` and `markdownlint` were run
   locally and are clean.
 
+### Done since the last session
+
+- **Branch protection** on `main`. Requires `abro gates`, `workflow and shell lint`, `markdown`,
+  `gitleaks` and `semgrep` — the five that run on every pull request regardless of path — plus
+  linear history, up-to-date branches, conversation resolution, and a pull request for every
+  change. See "Branch protection" below for the two judgement calls in that configuration.
+- **The full label taxonomy and all five milestones**, created by a scripted `gh` run. The six
+  unused stock labels are deleted.
+- **`M0 Foundations` is fully specified: 25 issues, #6–#30**, all labelled `ready` + `autopilot`,
+  created in dependency order so each `Blocked by #N` cites an issue that already exists.
+
 ### Remaining, in order
 
-**1. Root `Makefile` and `docker-compose.yml`.** These were written once and deliberately removed
-because they referenced directories that do not exist. Recreate them **as part of the M0
-scaffolding issues**, not now — but `README.md`, `CONTRIBUTING.md` and `docs/RUNBOOK.md` already
-reference `make setup`, `make up`, `make verify` and the rest, so the M0 issues must deliver those
-exact targets. `make verify` must run `python scripts/gates/run_all.py`.
+**1. The `M1`–`M4` backlog, roughly 95 more issues.** `M0` established the pattern; follow it.
 
-**2. Labels and milestones** via `gh`. Taxonomy below. Do it in one scripted run. The issue
-templates already apply `type:feature`, `type:bug` and `type:spike`, and `dependabot.yml` applies
-`area:devops` and `type:chore`, so those five must exist or they are silently dropped.
+- Write bodies to `.backlog/<slug>.md` (`.backlog/` is already in `.gitignore`).
+- Create them with `.backlog/create.py <batch>.json`, which substitutes a `{{slug}}` token with
+  the number GitHub assigned to that issue and records the mapping in `.backlog/numbers.json`, so
+  a partial run resumes without opening duplicates. Only tokens matching `b<digit>-…` are
+  substituted, which is what stops an i18n `{{count}}` example being mangled.
+- Work milestone by milestone so a partial run still leaves a coherent backlog, and batch by epic
+  — roughly 5 to 9 per batch. Do **not** try to hold a whole milestone in context at once.
+- Every issue uses the nine-section template below, no exceptions.
+- Creation order **is** the dependency mechanism: stage 2 of the autopilot pipeline picks the
+  oldest `ready` issue.
 
-**3. The backlog: ~120 issues.** The main deliverable. Approach that works:
-
-- Write bodies to `.backlog/NNN-slug.md` (`.backlog/` is already in `.gitignore`).
-- Create with `gh issue create --title ... --body-file ... --label ... --milestone ...`.
-- Work milestone by milestone so a partial run still leaves a coherent backlog.
-- Do **not** try to hold all 120 in context at once. Batch by epic, roughly 8–10 per batch.
-- Every issue uses the template below, no exceptions.
-
-**4. GitHub Project board.** Run `gh auth refresh -s project` first — the current token lacks the
+**2. GitHub Project board.** Run `gh auth refresh -s project` first — the current token lacks the
 scope. Then create the board and add every issue, with views grouped by discipline and milestone.
 
-**5. Branch protection** on `main` once the workflows have run at least once (required checks
-cannot be named until GitHub has seen them). Require the `abro gates`, `workflow and shell lint`
-and `markdown` checks from `ci.yml`, plus `gitleaks`, linear history, and CODEOWNERS review. The
-per-project CI checks cannot be required while their directories are absent — a path-filtered
-workflow never reports, so a required check that never runs blocks every merge. Add each one as
-its project lands.
+**3. Delete `HANDOFF.md`** and remove its reference from `README.md`. This is now step 5 of the
+`M0` exit check, issue #30, rather than a loose task — leave it to that issue.
 
-**6. Delete `HANDOFF.md`** and remove its reference from `README.md`.
+### Branch protection, and two decisions inside it
+
+**Required reviews are set to zero, and CODEOWNERS review is off.** The original plan called for
+code-owner review, but `@johnbekele` is the only code owner and GitHub forbids approving your own
+pull request. An agent running as that account could open a pull request and never be able to
+merge it, which deadlocks the whole pipeline. A pull request is still required and the five checks
+must still pass, so nothing red can land — what is not enforced is a second pair of eyes, and
+with a single maintainer there was never going to be one.
+
+**`enforce_admins` is off**, so the repository owner can still push directly to `main`. Turn it on
+once the pipeline is running unattended.
+
+**The per-project checks are not required yet.** `CI backend`, `CI web` and `CI mobile` are
+path-filtered, and a workflow that never runs never reports — a required check that never reports
+blocks every merge forever. Issue #30 adds them once all three directories exist.
 
 ### Known gaps, deliberate
 
+The first two used to be open questions and are now issues, which is the right place for them.
+
 - **Dependabot covers `github-actions` and root `npm` only.** A configured directory that does not
-  exist is a Dependabot error, so the `uv` and Docker ecosystems get added by the M0 issues that
-  create `abro-api/` and the Dockerfiles.
-- **Prettier is not yet in CI.** `npm ci` needs a lockfile and there is none until M0 installs
-  dependencies. `package.json` already declares the `format:check` script; wire it into `ci.yml`
-  with the M0 tooling issue.
+  exist is a Dependabot error, so the `uv` and Docker ecosystems wait until those directories are
+  created. Issue #29.
+- **Prettier is not yet in CI.** `npm ci` needs a lockfile and there is none. Issue #6 generates it
+  and wires `format:check` into the `markdown` job of `ci.yml` — inside that job rather than as a
+  new one, because a new job produces a check name that branch protection does not require.
+- **`CODECOV_TOKEN` is unset, and `ci-backend.yml` sets `fail_ci_if_error: true`.** The `tests` job
+  therefore goes red the first time it runs, on issue #11. That issue treats it as a missing-secret
+  escalation rather than something to disable, which is correct — but it is the most likely
+  point at which the M0 run stalls, so consider setting the secret before an agent starts.
 - **Deploy workflows have no credentials.** Both skip with a `::notice::` rather than failing.
   They need `AWS_ROLE_ARN` and `PULUMI_ACCESS_TOKEN` set on the `staging` and `production`
   environments. Obtaining them is a human task — see the escalation rules in `AGENTS.md`.
+- **No autopilot runner exists in this repository.** `AUTOPILOT.md` describes the three-stage
+  pipeline and its last line puts the runner outside the repo; nothing in `.github/workflows/`
+  reads the `autopilot` label. The labels are the interface, and they stay inert until something
+  is pointed at them.
 - **Dependabot opens pull requests already.** The dependency graph, vulnerability alerts and
   Dependabot security updates are all enabled, so `dependency review` works. Bot pull requests
   skip `commitlint` and `danger` deliberately — machine-written commit messages cannot satisfy
@@ -222,7 +249,10 @@ Stop and apply `needs-human` if: ...
 
 ---
 
-## Governance taxonomy to create
+## Governance taxonomy
+
+Created. Recorded here because the `M1`–`M4` issues have to label themselves from the same set,
+and `gh` fails a creation with an unknown label rather than warning.
 
 **Labels**
 
@@ -242,6 +272,7 @@ Stop and apply `needs-human` if: ...
 **Backlog shape (~120 issues)**
 
 Backend ≈48, web ≈20, mobile ≈22, infra/devops ≈13, QA ≈8, security ≈8, data ≈5, design/docs ≈6.
+`M0` accounts for 25 of them, leaving roughly 95 across `M1`–`M4`.
 
 ---
 
@@ -284,4 +315,6 @@ real worker, no structured logging, no staging environment, and the `tsc` error 
   Project board. Everything else works with the current token.
 - **Cursor approval prompts:** open `~/personal/abro` as the workspace folder, otherwise every
   file write is treated as outside the workspace and needs manual approval.
-- Nothing has been committed or pushed yet beyond the initial repo creation — check `git status`.
+- **`main` now requires a pull request.** Admins are exempt, so a direct push still works for the
+  repo owner, but do not assume it for an agent.
+- **Issue numbers 1–5 are Dependabot pull requests**, not issues. The backlog starts at #6.
