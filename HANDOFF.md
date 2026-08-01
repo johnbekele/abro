@@ -27,10 +27,12 @@ CI gates, and a backlog of very detailed issues. No application code.
 Open `~/personal/abro` as the Cursor workspace folder first, or every write needs manual approval.
 Then give the agent this:
 
-> Read `HANDOFF.md`. Continue from the "Remaining" list. `M0 Foundations` is fully specified —
-> its 25 issues are open, labelled `ready` + `autopilot` and ordered by dependency. What is left
-> is the `M1`–`M4` backlog and the project board. Do not write application code in this session:
-> the M0 issues deliver it and an agent is meant to pick them up.
+> Read `HANDOFF.md`. **The backlog is complete — 115 issues, #6–#120, across all five
+> milestones**, every one labelled `ready` + `autopilot` and created in dependency order. Only two
+> things remain: the GitHub Project board, which needs `gh auth refresh -s project` run by a human
+> first, and setting `CODECOV_TOKEN` before an agent starts on #11. Everything else is now an
+> issue, so the next session is the first one that writes application code — pick up #6 and work
+> the pipeline.
 
 ### Done
 
@@ -65,26 +67,63 @@ Then give the agent this:
 - **`M0 Foundations` is fully specified: 25 issues, #6–#30**, all labelled `ready` + `autopilot`,
   created in dependency order so each `Blocked by #N` cites an issue that already exists.
 
+### Done since the session before that
+
+- **The whole `M1`–`M4` backlog. 115 issues in total, #6–#120, no gaps**, every one carrying a
+  milestone and both the `ready` and `autopilot` labels, every `Blocked by #N` pointing backwards
+  at an issue that already existed when it was written.
+
+| Milestone | Issues | Range |
+|---|---|---|
+| `M0 Foundations` | 25 | #6–#30 |
+| `M1 Rides & Search` | 33 | #31–#62, plus #83 |
+| `M2 Money` | 20 | #63–#82 |
+| `M3 Trust & Comms` | 20 | #84–#103 |
+| `M4 Admin CRM & Launch` | 17 | #104–#120 |
+
+By discipline: backend 80, web 24, mobile 20, security 17, data 14, devops 10, infra 6, QA 5,
+docs 3, design 1. Labels overlap, so those do not sum to 115.
+
+**Two ordering decisions worth knowing about**, because both look like mistakes otherwise:
+
+- **The user model (#83) sits in `M1`, not `M3`.** `trip.driver_id` is a foreign key to it, so the
+  table has to exist before anything in `M1 Rides & Search` can be built. The rest of identity —
+  OTP, sessions, Fayda — stayed in `M3` where it belongs.
+- **Pricing and the price cap (#38) moved from `M2` into `M1`.** Publishing a trip validates the
+  contribution against the cap, and shipping publish before the cap opens a window in which trips
+  can be created that ADR 0006 forbids. The legal spine cannot be retrofitted.
+
+Consolidated during the run: `m3b-passenger-profile` folded into #97, which covers both sides.
+Split out during the run: an Android release pipeline (#119), which nothing else covered and
+without which there is no way to get the app onto a phone.
+
 ### Remaining, in order
 
-**1. The `M1`–`M4` backlog, roughly 95 more issues.** `M0` established the pattern; follow it.
+**1. GitHub Project board.** Run `gh auth refresh -s project` first — the token still lacks the
+scope, and it is an interactive device flow, so a human has to do it. Then create the board and add
+every issue, with views grouped by discipline and milestone.
 
-- Write bodies to `.backlog/<slug>.md` (`.backlog/` is already in `.gitignore`).
-- Create them with `.backlog/create.py <batch>.json`, which substitutes a `{{slug}}` token with
-  the number GitHub assigned to that issue and records the mapping in `.backlog/numbers.json`, so
-  a partial run resumes without opening duplicates. Only tokens matching `b<digit>-…` are
-  substituted, which is what stops an i18n `{{count}}` example being mangled.
-- Work milestone by milestone so a partial run still leaves a coherent backlog, and batch by epic
-  — roughly 5 to 9 per batch. Do **not** try to hold a whole milestone in context at once.
-- Every issue uses the nine-section template below, no exceptions.
+**2. Set `CODECOV_TOKEN`** before an agent starts. See the known gaps below: without it the first
+backend pull request goes red, and it is the most likely place for an unattended run to stall.
+
+**3. Delete `HANDOFF.md`** and remove its reference from `README.md`. This is step 5 of the `M0`
+exit check, issue #30, rather than a loose task — leave it to that issue.
+
+### How the backlog was built, if any of it needs redoing
+
+- Bodies live in `.backlog/<slug>.md` (`.backlog/` is in `.gitignore`, so none of this is
+  committed).
+- `.backlog/create.py <batch>.json` creates them, substituting a `{{slug}}` token with the number
+  GitHub assigned to that issue and recording the mapping in `.backlog/numbers.json`, so a partial
+  run resumes without opening duplicates. Only tokens matching `b<digit>-…` or `m<digit><letter>-…`
+  are substituted, which is what stops an i18n `{{count}}` example being mangled — an unknown token
+  of that shape is a typo and fails loudly.
+- Work milestone by milestone, batch by epic, five to nine per batch. Do **not** try to hold a
+  whole milestone in context at once.
 - Creation order **is** the dependency mechanism: stage 2 of the autopilot pipeline picks the
   oldest `ready` issue.
-
-**2. GitHub Project board.** Run `gh auth refresh -s project` first — the current token lacks the
-scope. Then create the board and add every issue, with views grouped by discipline and milestone.
-
-**3. Delete `HANDOFF.md`** and remove its reference from `README.md`. This is now step 5 of the
-`M0` exit check, issue #30, rather than a loose task — leave it to that issue.
+- `gh` fails a creation with an unknown label rather than warning. `mod:booking` is singular and
+  there is no `mod:safety` — it is `mod:trust`. Both cost a failed batch during the run.
 
 ### Branch protection, and two decisions inside it
 
@@ -269,10 +308,11 @@ and `gh` fails a creation with an unknown label rather than warning.
 `M0 Foundations` → `M1 Rides & Search` → `M2 Money` → `M3 Trust & Comms` →
 `M4 Admin CRM & Launch`
 
-**Backlog shape (~120 issues)**
+**Backlog shape**
 
-Backend ≈48, web ≈20, mobile ≈22, infra/devops ≈13, QA ≈8, security ≈8, data ≈5, design/docs ≈6.
-`M0` accounts for 25 of them, leaving roughly 95 across `M1`–`M4`.
+Planned at roughly 120; landed at 115. The estimate was close enough that the difference is
+consolidation rather than omission — see the per-milestone table above for what was actually
+created.
 
 ---
 
