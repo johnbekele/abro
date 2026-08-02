@@ -28,11 +28,10 @@ Open `~/personal/abro` as the Cursor workspace folder first, or every write need
 Then give the agent this:
 
 > Read `HANDOFF.md`. **The backlog is complete — 115 issues, #6–#120, across all five
-> milestones**, every one labelled `ready` + `autopilot` and created in dependency order. Only two
-> things remain: the GitHub Project board, which needs `gh auth refresh -s project` run by a human
-> first, and setting `CODECOV_TOKEN` before an agent starts on #11. Everything else is now an
-> issue, so the next session is the first one that writes application code — pick up #6 and work
-> the pipeline.
+> milestones**, every one labelled `ready` + `autopilot` and created in dependency order, and all
+> of them on the project board. One thing remains before an unattended run: set `CODECOV_TOKEN`,
+> or the first backend pull request goes red on #11. Everything else is now an issue, so the next
+> session is the first one that writes application code — pick up #6 and work the pipeline.
 
 ### Done
 
@@ -67,11 +66,11 @@ Then give the agent this:
 - **`M0 Foundations` is fully specified: 25 issues, #6–#30**, all labelled `ready` + `autopilot`,
   created in dependency order so each `Blocked by #N` cites an issue that already exists.
 
-### Done since the session before that
+### Done in the session after that
 
-- **The whole `M1`–`M4` backlog. 115 issues in total, #6–#120, no gaps**, every one carrying a
-  milestone and both the `ready` and `autopilot` labels, every `Blocked by #N` pointing backwards
-  at an issue that already existed when it was written.
+**The whole `M1`–`M4` backlog. 115 issues in total, #6–#120, no gaps**, every one carrying a
+milestone and both the `ready` and `autopilot` labels, every `Blocked by #N` pointing backwards at
+an issue that already existed when it was written.
 
 | Milestone | Issues | Range |
 |---|---|---|
@@ -97,16 +96,35 @@ Consolidated during the run: `m3b-passenger-profile` folded into #97, which cove
 Split out during the run: an Android release pipeline (#119), which nothing else covered and
 without which there is no way to get the app onto a phone.
 
-### Remaining, in order
+### The project board
 
-**1. GitHub Project board.** Run `gh auth refresh -s project` first — the token still lacks the
-scope, and it is an interactive device flow, so a human has to do it. Then create the board and add
-every issue, with views grouped by discipline and milestone.
+<https://github.com/users/johnbekele/projects/12> — public, linked to the repo, with all 115
+issues on it. Three single-select fields, `Discipline`, `Priority` and `Size`, are populated from
+the labels. Six views: **By milestone**, **By discipline**, **Autopilot queue**, **In flight**,
+**Needs a human** and **M0 Foundations**.
 
-**2. Set `CODECOV_TOKEN`** before an agent starts. See the known gaps below: without it the first
+Two things about it worth knowing.
+
+**Group-by is not settable through the API.** Neither `createProjectV2View` nor
+`updateProjectV2View` accepts it, so "By milestone" and "By discipline" have the right fields and
+filters but need their grouping set once in the UI. One click each.
+
+**`Discipline` is single-valued and `area:` labels are not.** An issue labelled both
+`area:security` and `area:backend` lands under Backend; the precedence is mobile, web, backend,
+infra, QA, security, data, design. That is deliberate — security is a dimension of backend work
+here rather than a separate person's queue — but it leaves the `Security` and `Design & Docs`
+options empty even though 17 and 3 issues carry those labels. Filter on the label, not the field,
+for those two.
+
+`.backlog/board.py` and `.backlog/views.py` rebuild the whole thing. Both are idempotent, so
+re-running after adding issues is safe.
+
+### Remaining
+
+**1. Set `CODECOV_TOKEN`** before an agent starts. See the known gaps below: without it the first
 backend pull request goes red, and it is the most likely place for an unattended run to stall.
 
-**3. Delete `HANDOFF.md`** and remove its reference from `README.md`. This is step 5 of the `M0`
+**2. Delete `HANDOFF.md`** and remove its reference from `README.md`. This is step 5 of the `M0`
 exit check, issue #30, rather than a loose task — leave it to that issue.
 
 ### How the backlog was built, if any of it needs redoing
@@ -351,8 +369,8 @@ real worker, no structured logging, no staging environment, and the `tsc` error 
 
 ## Practical gotchas
 
-- **`gh` token lacks the `project` scope.** Run `gh auth refresh -s project` before attempting the
-  Project board. Everything else works with the current token.
+- **The `project` scope is an interactive device flow.** It has been granted, but a fresh machine
+  or a re-authentication will drop it, and `gh auth refresh -s project` cannot be run unattended.
 - **Cursor approval prompts:** open `~/personal/abro` as the workspace folder, otherwise every
   file write is treated as outside the workspace and needs manual approval.
 - **`main` now requires a pull request.** Admins are exempt, so a direct push still works for the
