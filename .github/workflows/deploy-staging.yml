@@ -38,11 +38,11 @@ jobs:
     env:
       HAS_CREDENTIALS: ${{ secrets.AWS_ROLE_ARN != '' && secrets.PULUMI_ACCESS_TOKEN != '' }}
     steps:
-      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Report missing credentials
         if: env.HAS_CREDENTIALS != 'true'
@@ -50,7 +50,7 @@ jobs:
           echo "::notice::Staging credentials are not configured yet, so nothing was" \
             "deployed. Set AWS_ROLE_ARN and PULUMI_ACCESS_TOKEN on the staging environment."
 
-      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         if: env.HAS_CREDENTIALS == 'true'
         with:
           python-version: '3.12'
